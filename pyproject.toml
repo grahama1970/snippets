@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68.2.2", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "snippets"
+version = "0.1.0"
+authors = [{name = "Graham Anderson", email = "graham@grahama.co"}]
+description = "Snippets for all Project"
+requires-python = ">=3.10.16"
+dependencies = [
+    "loguru>=0.7.2",
+    "smolagents",
+    "nltk",
+    "pandas>=2.0.0",
+    "pydantic>=2.0",
+    "python-arango"
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "ipython"]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages]
+find = { where = ["src"], include = ["snippets*"], exclude = ["tests*", "experiments*"] }
+

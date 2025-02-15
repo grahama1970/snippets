@@ -1,0 +1,15 @@
+Metadata-Version: 2.2
+Name: snippets
+Version: 0.1.0
+Summary: Snippets for all Project
+Author-email: Graham Anderson <graham@grahama.co>
+Requires-Python: >=3.10.16
+Requires-Dist: loguru>=0.7.2
+Requires-Dist: smolagents
+Requires-Dist: nltk
+Requires-Dist: pandas>=2.0.0
+Requires-Dist: pydantic>=2.0
+Requires-Dist: python-arango
+Provides-Extra: dev
+Requires-Dist: pytest; extra == "dev"
+Requires-Dist: ipython; extra == "dev"
