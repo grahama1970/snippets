@@ -1,0 +1,33 @@
+FOR entry IN microsoft_glossary_view
+  // Step 1: Use the view’s inverted index for fast candidate selection.
+  // The SEARCH clause applies a simple LIKE condition to check if entry.definition contains @search_text.
+  // The CONCAT('%', @search_text, '%') pattern ensures that any document with the search text anywhere in its definition is selected.
+  // The "text_analyzer" (configured to lowercase and tokenize the text without stemming or stopword removal) is applied,
+  // so even if we don’t wrap the field in LOWER(), the analyzer has already normalized the text.
+  SEARCH ANALYZER(
+    entry.definition LIKE CONCAT('%', @search_text, '%'),
+    "text_analyzer"
+  )
+  
+  // Step 2: Normalize the definition field by removing HTML tags and non-alphanumeric characters.
+  // This creates a cleaned-up version (normalizedDefinition) that makes further regex filtering more reliable.
+  LET normalizedDefinition = REGEX_REPLACE(
+        REGEX_REPLACE(entry.definition, "<[^>]+>", ""), 
+        "[^a-zA-Z0-9 ]", ""
+      )
+      
+  // Step 3: Apply a more precise filter using REGEX_TEST on the normalized definition.
+  // This filter uses a regex with word boundary markers (\\b) to match the search text as a complete word.
+  // LOWER(normalizedDefinition) ensures case-insensitive matching, aligning with the analyzer’s behavior.
+  FILTER REGEX_TEST(
+    LOWER(normalizedDefinition),
+    CONCAT('\\b', LOWER(@search_text), '\\b'),
+    true
+  )
+  
+  // Step 4: Return the original term and definition along with the normalized definition.
+  RETURN {
+    term: entry.term,
+    definition: entry.definition,
+    normalized_definition: normalizedDefinition
+  }
