@@ -20,18 +20,17 @@ Contains project-wide coding standards and best practices for AI code generation
 - Standardized logging practices using loguru
 
 ### 2. 🧩 Design Patterns (`002-design-patterns.mdc`)
-Documents common design patterns and their implementations, ensuring:
-- Consistent pattern application
-- Reusable code templates
-- Standardized architectural approaches
-- Best practices for specific use cases
+Documents common design patterns and their implementations, including:
+- Async Processing Patterns
+- Text Processing Patterns
+- Caching Patterns
+- Best practices for implementation
 
-### 3. 📑 Design Patterns Index (`002-design-patterns-index.mdc`)
-Provides a quick reference guide to:
-- Available design patterns
-- Pattern locations in codebase
-- Use case recommendations
-- Implementation examples
+### 3. 📦 Package Usage (`003-package-usage.mdc`)
+Guidelines for using common packages and utilities, including:
+- Text processing with text_normalizer
+- Caching and retries with caching_tenacity
+- Best practices for package integration
 
 ## 🛠️ Usage
 
