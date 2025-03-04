@@ -11,11 +11,17 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build]
-include = ["*.mdc"]
+include = [
+    "*.mdc",
+    "pyproject.toml",
+    "README.md"
+]
 
 [tool.hatch.build.targets.wheel]
-packages = ["."]
-shared-data = {"." = ["*.mdc"]}
+packages = ["cursor_rules"]
+
+[tool.hatch.build.targets.wheel.shared-data]
+"*.mdc" = "cursor_rules"
 
 [tool.hatch.metadata]
 allow-direct-references = true
