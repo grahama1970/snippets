@@ -53,8 +53,8 @@ rm -rf "$TEMP_DIR"
 
 # Verify the rules were downloaded
 if [ ! -d "$TARGET_DIR/rules" ] || [ -z "$(ls -A $TARGET_DIR/rules)" ]; then
-    echo "Error: Failed to fetch cursor rules"
+    echo "🚨❌ Error: Failed to fetch cursor rules"
     exit 1
 fi
 
-echo "Cursor rules updated successfully"
+echo "🎉✅ Cursor rules updated successfully"
