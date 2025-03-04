@@ -1,5 +1,6 @@
 [project]
 name = "cursor-rules"
+
 version = "0.1.0"
 description = "Cursor MDC rules from snippets repository"
 authors = [{ name = "Graham Anderson", email = "graham@grahama.co" }]
@@ -9,7 +10,6 @@ license = { text = "MIT" }
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
-
 
 [tool.hatch.build]
 include = [
