@@ -1,7 +1,6 @@
 [project]
 name = "cursor-rules"
 version = "0.1.0"
-
 description = "Cursor MDC rules from snippets repository"
 authors = [{ name = "Graham Anderson", email = "graham@grahama.co" }]
 requires-python = ">=3.8"
@@ -12,18 +11,16 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build]
-include = [
-    "*.mdc",
-    "pyproject.toml",
-    "README.md"
-]
+include = ["*.mdc", "README.md"]
 
 [tool.hatch.build.targets.wheel]
+only-include = ["*.mdc", "README.md"]
+sources = ["."]
 packages = []
 
 [tool.hatch.build.targets.wheel.shared-data]
-"*.mdc" = "cursor_rules"
-"README.md" = "cursor_rules"
+"*.mdc" = "share/cursor_rules"
+"README.md" = "share/cursor_rules"
 
 [tool.hatch.metadata]
 allow-direct-references = true
