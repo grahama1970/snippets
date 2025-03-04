@@ -6,23 +6,16 @@ authors = [{ name = "Graham Anderson", email = "graham@grahama.co" }]
 requires-python = ">=3.8"
 license = { text = "MIT" }
 
-
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build]
-include = [
-    "*.mdc",
-    "pyproject.toml",
-    "README.md"
-]
+include = ["*.mdc"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["."]
-
-[tool.hatch.build.targets.wheel.force-include]
-"*.mdc" = "cursor_rules/"
+shared-data = {"." = ["*.mdc"]}
 
 [tool.hatch.metadata]
 allow-direct-references = true
