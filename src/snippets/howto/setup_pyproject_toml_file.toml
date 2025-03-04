@@ -1,0 +1,110 @@
+# =============================================================================
+# Project Metadata
+# =============================================================================
+
+
+# =============================================================================
+# Installation Instructions:
+# - uv pip install -e .         (install in editable mode)
+# - uv pip install -e ".[dev]"  (install with dev dependencies)
+# - uv pip sync                 (sync dependencies)
+# =============================================================================
+
+[project]
+name = "summarizer"
+version = "0.1.0"
+description = "Rolling Window Summarizer"
+authors = [
+    { name = "Graham Anderson", email = "graham@grahamaco.com" }
+]
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+
+# =============================================================================
+# Dependencies
+# =============================================================================
+dependencies = [
+    # Data Processing & Visualization
+    "datasets",
+    "pandas",
+    "matplotlib",
+    "seaborn",
+    
+    # AI & ML Libraries
+    # PyTorch - Platform-specific installations:
+    # 1. Intel Mac (CPU only)
+    "torch==2.2.0; sys_platform == 'darwin' and platform_machine == 'x86_64'",
+    # 2. WSL2/Linux with CUDA 12.1 (GPU support)
+    "torch==2.2.0+cu121; sys_platform == 'linux' and platform_machine == 'x86_64'",
+    
+    # NLP & Text Processing
+    "nltk>=3.9.1",
+    "spacy>=3.8.4",
+    "markdownify",
+    "rapidfuzz>=3.11.0",
+    
+    # API & Communication
+    "litellm",
+    "requests",
+    "python-dotenv",
+    
+    # Database
+    "python-arango>=8.1.4",
+    
+    # Utilities
+    "tenacity>=9.0.0",
+    "loguru>=0.7.3",
+    "deepmerge>=2.0",
+    "pyperclip>=1.9.0",
+    "json-repair>=0.35.0",
+]
+
+# =============================================================================
+# Build System Configuration
+# =============================================================================
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+# =============================================================================
+# Package Discovery Settings
+# =============================================================================
+[tool.setuptools]
+# Define the root directory for the package
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+# Specify where to look for packages
+where = ["src"]
+# Include pattern for package discovery
+include = ["summarizer*"]
+
+# Include all Python files as package data
+[tool.setuptools.package-data]
+summarizer = ["**/*.py"]
+
+# =============================================================================
+# Development Dependencies
+# =============================================================================
+[project.optional-dependencies]
+dev = [
+    # Testing
+    "pytest",
+    
+    # Development Environment
+    "ipython",
+    "jupyterlab",
+    
+    # Code Quality
+    "pre-commit>=3.6.0"
+]
+
+# =============================================================================
+# UV Package Manager Configuration
+# =============================================================================
+[tool.uv]
+# UV-specific configurations can be added here
+# Currently empty as UV inherits from pip configurations
+
+

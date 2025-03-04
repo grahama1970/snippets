@@ -1,6 +1,25 @@
+README.md
 pyproject.toml
 src/snippets.egg-info/PKG-INFO
 src/snippets.egg-info/SOURCES.txt
 src/snippets.egg-info/dependency_links.txt
 src/snippets.egg-info/requires.txt
 src/snippets.egg-info/top_level.txt
+src/snippets/arangodb/dump_restore_utils.py
+src/snippets/arangodb/initialize_database.py
+src/snippets/async_utils/nice_async_design_pattern.py
+src/snippets/howto/__init__.py
+src/snippets/howto/setup_text_normalizer/__init__.py
+src/snippets/howto/setup_text_normalizer/text_normalizer_usage.py
+src/snippets/howto/setup_text_normalizer/cleaning/__init__.py
+src/snippets/howto/setup_text_normalizer/cleaning/cleaning_debug.py
+src/snippets/howto/setup_text_normalizer/cleaning/regex_patterns/__init__.py
+src/snippets/howto/setup_text_normalizer/cleaning/regex_patterns/get_patterns.py
+src/snippets/howto/setup_text_normalizer/cleaning/regex_patterns/get_section_titles.py
+src/snippets/howto/setup_text_normalizer/cleaning/regex_patterns/normalize_text_with_replacements.py
+src/snippets/howto/setup_text_normalizer/cleaning/text_normalizer/__init__.py
+src/snippets/howto/setup_text_normalizer/cleaning/text_normalizer/text_normalizer.py
+src/snippets/howto/setup_text_normalizer/cleaning/text_normalizer/text_normalizer_config.py
+src/snippets/howto/setup_text_normalizer/cleaning/text_normalizer/_archive/main copy.py
+src/snippets/howto/setup_text_normalizer/cleaning/text_normalizer/_archive/main.py
+src/snippets/openwebui_utils/tools/string_reverser.py

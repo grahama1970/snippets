@@ -14,11 +14,14 @@ from nltk import pos_tag
 from nltk.stem import WordNetLemmatizer
 from nltk.tokenize import word_tokenize
 
-from sparta.libs.cleaning.regex_patterns.get_patterns import get_patterns
-from sparta.libs.cleaning.regex_patterns.normalize_text_with_replacements import (
+
+from snippets.howto.setup_text_normalizer.cleaning.regex_patterns.get_patterns import get_patterns
+
+from snippets.howto.setup_text_normalizer.cleaning.text_normalizer.normalize_text_with_replacements import (
     get_replacements,
 )
-from sparta.libs.cleaning.text_normalizer.text_normalizer_config import (
+
+from snippets.howto.setup_text_normalizer.cleaning.text_normalizer.text_normalizer_config import (
     TextNormalizerConfig,
     TextCleaningStep,
 )

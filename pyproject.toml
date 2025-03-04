@@ -14,8 +14,14 @@ dependencies = [
     "nltk",
     "pandas>=2.0.0",
     "pydantic>=2.0",
-    "python-arango"
+    "python-arango",
+    "emoji>=2.14.1",
+    "better-profanity>=0.7.0",
+    "langdetect>=1.0.9",
+    "fuzzywuzzy>=0.18.0",
+    "text_normalizer @ file:///${PROJECT_ROOT}/src/snippets/howto/setup_text_normalizer/text_normalizer"
 ]
+
 
 [project.optional-dependencies]
 dev = ["pytest", "ipython"]

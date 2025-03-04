@@ -1,7 +1,7 @@
 import regex as re
 from fuzzywuzzy import fuzz
 
-from sparta.libs.cleaning.regex_patterns.get_patterns import _compile_pattern, get_patterns
+from snippets.howto.setup_text_normalizer.cleaning.regex_patterns.get_patterns import _compile_pattern, get_patterns
 
 
 def get_filtered_section_titles(text: str):

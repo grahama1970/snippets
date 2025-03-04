@@ -16,13 +16,19 @@
       "type": "simplicity",
       "condition": "always",
       "action": "prefer_simplest_solution",
-      "message": "Always prioritize the simplest solution to a problem, avoiding over-engineering."
+      "message": "Always prioritize the simplest solution to a problem, avoiding over-engineering. Default to functions instead of classes unless state management or package requirements necessitate a class architecture."
     },
     {
       "type": "code_example",
       "condition": "always",
       "action": "use_provided_example",
       "message": "If a code example is referenced or provided, use that example as the basis for your code. DO NOT create a separate solution unless authorized to do so"
+    },
+    {
+      "type": "logging",
+      "condition": "always",
+      "action": "use_loguru",
+      "message": "Always use loguru for logging in all scripts. Implement reasonable error handling with appropriate logging levels (DEBUG, INFO, WARNING, ERROR, CRITICAL) based on the situation."
     }
   ]
 }

@@ -1,6 +1,6 @@
 from typing import Dict, List, Union
 import regex as re
-from sparta.libs.cleaning.regex_patterns.get_patterns import _compile_pattern
+from src.snippets.howto.setup_text_normalizer.cleaning.regex_patterns.get_patterns import _compile_pattern
 
 
 def get_replacements() -> Dict[str, Union[Dict[str, str], List[re.Pattern]]]:
