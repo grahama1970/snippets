@@ -12,6 +12,11 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build]
 include = ["*.mdc"]
+artifacts = ["*.mdc"]
+
+[tool.hatch.build.targets.wheel]
+artifacts = ["*.mdc"]
+install-dir = ".cursor/rules"
 
 [tool.hatch.metadata]
 allow-direct-references = true
