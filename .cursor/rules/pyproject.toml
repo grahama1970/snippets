@@ -10,6 +10,7 @@ license = { text = "MIT" }
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+
 [tool.hatch.build]
 include = [
     "*.mdc",
@@ -18,10 +19,10 @@ include = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["cursor_rules"]
+packages = []
 
 [tool.hatch.build.targets.wheel.shared-data]
-"*.mdc" = "cursor_rules"
+"." = "cursor_rules"
 
 [tool.hatch.metadata]
 allow-direct-references = true
