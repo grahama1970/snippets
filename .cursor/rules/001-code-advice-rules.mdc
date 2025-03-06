@@ -188,4 +188,22 @@ alwaysApply: false
      - Explain test coverage,  
   7. Test failure protocol:  
      a. If tests fail BEFORE changes: Document current failures,  
-     b. If tests fail AFTER changes: Revert changes or fix immediately. 
+     b. If tests fail AFTER changes: Revert changes or fix immediately.
+
+## Linter Error Prioritization
+- **Type:** `code_quality`
+- **Priority:** `low`
+- **Message:**
+  Linter errors should be treated as low priority when:
+  1. Core functionality is being developed
+  2. Tests are being written or fixed
+  3. Working code exists and is verified
+  4. The code is documented as VERIFIED WORKING in task.md
+  
+  Only address linter errors:
+  1. After core functionality is working
+  2. After all tests are passing
+  3. When not modifying verified working code
+  4. When the errors impact actual runtime behavior
+  
+  Never modify VERIFIED WORKING code just to fix linter errors. 

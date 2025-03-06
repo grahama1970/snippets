@@ -179,4 +179,195 @@ sections:
 4. **Testing:**
    - Write unit tests for each pattern
    - Test edge cases and failure modes
-   - Implement integration tests for external services 
+   - Implement integration tests for external services
+
+**5. Async Main Function Pattern**
+- **Type:** `design_pattern`
+- **Condition:** `async_main`
+- **Action:** `use_async_main`
+- **Message:**
+  When implementing async main entry points:
+  1. Use asyncio.run for the main event loop
+  2. Implement proper signal handling
+  3. Add cleanup handlers
+  4. Handle keyboard interrupts gracefully
+  
+  **Template:**
+  ```python
+  import asyncio
+  import signal
+  from contextlib import asynccontextmanager
+  from loguru import logger
+
+  @asynccontextmanager
+  async def cleanup_handler():
+      try:
+          yield
+      finally:
+          # Add cleanup tasks here
+          tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
+          [task.cancel() for task in tasks]
+          await asyncio.gather(*tasks, return_exceptions=True)
+          
+  async def main():
+      async with cleanup_handler():
+          try:
+              # Your async code here
+              pass
+          except asyncio.CancelledError:
+              logger.info("Shutdown signal received")
+          except Exception as e:
+              logger.error(f"Error in main: {e}")
+              raise
+              
+  def handle_signals():
+      loop = asyncio.get_event_loop()
+      for sig in (signal.SIGTERM, signal.SIGINT):
+          loop.add_signal_handler(sig, lambda s=sig: asyncio.create_task(shutdown(sig, loop)))
+              
+  async def shutdown(sig, loop):
+      logger.info(f"Received exit signal {sig.name}")
+      tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
+      [task.cancel() for task in tasks]
+      await asyncio.gather(*tasks, return_exceptions=True)
+      loop.stop()
+      
+  if __name__ == "__main__":
+      handle_signals()
+      try:
+          asyncio.run(main())
+      except KeyboardInterrupt:
+          logger.info("Keyboard interrupt received")
+
+**6. LLM API Integration Pattern**
+- **Type:** `design_pattern`
+- **Condition:** `llm_integration_task`
+- **Action:** `use_llm_pattern`
+- **Message:**
+  When implementing LLM integrations:
+  1. Use structured request/response models with Pydantic V2
+  2. Support both streaming and non-streaming responses
+  3. Implement Redis caching with local fallback
+  4. Handle JSON response formats
+  5. Use exponential backoff retries
+  
+  **Template:**
+  ```python
+  from typing import Optional, Dict, Any, Union, AsyncGenerator
+  from pydantic import BaseModel, Field, ConfigDict
+  from tenacity import retry, stop_after_attempt, wait_exponential
+  import litellm
+  from loguru import logger
+  
+  class Message(BaseModel):
+      """Chat message model."""
+      model_config = ConfigDict(frozen=True)
+      role: str = Field(..., pattern="^(system|user|assistant)$")
+      content: str = Field(..., min_length=1)
+  
+  class TokenUsage(BaseModel):
+      """Token usage statistics."""
+      model_config = ConfigDict(frozen=True)
+      completion_tokens: int = Field(..., ge=0)
+      prompt_tokens: int = Field(..., ge=0)
+      total_tokens: int = Field(..., ge=0)
+  
+  class LLMRequest(BaseModel):
+      """Model for LLM API requests."""
+      model_config = ConfigDict(frozen=True)
+      model: str = Field(..., min_length=1)
+      messages: List[Message]
+      stream: bool = Field(default=False)
+      temperature: float = Field(default=0.7, ge=0.0, le=2.0)
+      cache: bool = Field(default=True)
+      max_retries: int = Field(default=3, ge=0, le=10)
+  
+  class LLMResponse(BaseModel):
+      """Structured LLM response."""
+      model_config = ConfigDict(frozen=True)
+      id: str = Field(..., min_length=1)
+      response: str = Field(..., min_length=1)
+      metadata: Dict[str, Any] = Field(default_factory=dict)
+      usage: TokenUsage
+  
+  async def initialize_cache(
+      redis_host: str = "localhost",
+      redis_port: int = 6379,
+      redis_password: Optional[str] = None
+  ):
+      """Initialize LiteLLM caching with Redis fallback."""
+      try:
+          litellm.cache = litellm.Cache(
+              type="redis",
+              host=redis_host,
+              port=redis_port,
+              password=redis_password
+          )
+          litellm.enable_cache()
+          logger.info("✅ Redis caching enabled")
+      except Exception as e:
+          logger.warning(f"⚠️ Redis failed: {e}. Using local cache.")
+          litellm.cache = litellm.Cache(type="local")
+          litellm.enable_cache()
+  
+  @retry(
+      wait=wait_exponential(multiplier=1, min=4, max=10),
+      stop=stop_after_attempt(3),
+      retry=retry_if_exception_type((Exception,))
+  )
+  async def query_llm(
+      request: LLMRequest
+  ) -> Union[LLMResponse, AsyncGenerator[str, None]]:
+      """Query LLM with caching and retries."""
+      try:
+          response = await litellm.acompletion(**request.model_dump())
+          
+          if request.stream:
+              async def content_generator() -> AsyncGenerator[str, None]:
+                  async for chunk in response:
+                      content = chunk.choices[0].delta.content or ""
+                      yield content
+              return content_generator()
+          
+          content = response.choices[0].message.content
+          usage = TokenUsage(
+              completion_tokens=response.usage.completion_tokens,
+              prompt_tokens=response.usage.prompt_tokens,
+              total_tokens=response.usage.total_tokens
+          )
+          
+          return LLMResponse(
+              id=response.id,
+              response=content,
+              metadata={
+                  "model": response.model,
+                  "cache_hit": getattr(response, '_hidden_params', {}).get('cache_hit', False)
+              },
+              usage=usage
+          )
+          
+      except Exception as e:
+          logger.error(f"Error in LLM query: {e}")
+          raise
+  ```
+  
+  **Usage Example:**
+  ```python
+  # Initialize caching
+  await initialize_cache()
+  
+  # Create request
+  request = LLMRequest(
+      model="gpt-3.5-turbo",
+      messages=[
+          Message(role="system", content="You are a helpful assistant."),
+          Message(role="user", content="Hello!")
+      ]
+  )
+  
+  # Query with structured response
+  response = await query_llm(request)
+  print(f"Response: {response.response}")
+  print(f"Cache hit: {response.metadata.get('cache_hit', False)}")
+  print(f"Tokens used: {response.usage.total_tokens}")
+  ``` 

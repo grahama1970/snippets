@@ -32,6 +32,27 @@ Guidelines for using common packages and utilities, including:
 - Caching and retries with caching_tenacity
 - Best practices for package integration
 
+### 4. 🔍 Testing Practices (`004-testing-practices.mdc`)
+Guidelines for test organization and implementation, including:
+- Progressive testing approach
+- Test fixture usage
+- Mock response handling
+
+### 5. 📝 Structured Inputs (`005-structured-inputs.mdc`)
+Guidelines for handling structured inputs and validation
+
+### 6. 🛠️ UV Commands (`006-uv-commands.mdc`)
+Rules for package management using UV, including:
+- Package installation
+- Dependency management
+- Version control
+
+### 7. ✅ Command Validation (`007-command-validation.mdc`)
+Rules for validating commands before execution:
+- Pre-command rule checking
+- Command compliance validation
+- Rule violation blocking
+
 ## 🛠️ Usage
 
 1. **Project Integration**
