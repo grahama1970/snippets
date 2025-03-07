@@ -1,3 +1,8 @@
+---
+description: "follow these core testing rules for pytests"
+globs: 
+alwaysApply: false
+---
 # Testing Practices
 
 ## Core Testing Philosophy
