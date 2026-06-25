@@ -98,7 +98,7 @@ jobs:
           DEPLOY_RUN_ID: ${{ github.run_id }}
           DEPLOY_ATTEMPT: ${{ github.run_attempt }}
         run: |
-          cat > /tmp/monocle-live-pages-proof.mjs <<'NODE'
+          cat > live-pages-proof.mjs <<'NODE'
           import fs from 'node:fs';
           import path from 'node:path';
           import { chromium } from 'playwright';
@@ -216,7 +216,7 @@ jobs:
             throw new Error(`Live Pages proof failed: ${JSON.stringify(proof.assertions)}`);
           }
           NODE
-          node /tmp/monocle-live-pages-proof.mjs
+          node live-pages-proof.mjs
 
       - name: Upload live Pages proof artifact
         uses: actions/upload-artifact@v4
