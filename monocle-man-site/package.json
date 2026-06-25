@@ -5,8 +5,8 @@
   "type": "module",
   "description": "Slice 001 benchmark fixture for ChatGPT-Lab.",
   "scripts": {
-    "build": "node -e \"const fs=require('fs'); if(!fs.existsSync('index.html')){console.error('missing index.html'); process.exit(1)} fs.mkdirSync('benchmark-evidence/screenshots',{recursive:true})\"",
-    "serve": "http-server . -p 4173 -c-1 --silent",
+    "build": "node scripts/build-site.mjs",
+    "serve": "http-server ./dist -p 4173 -c-1 --silent",
     "test:benchmark": "playwright test --config=playwright.config.ts"
   },
   "devDependencies": {

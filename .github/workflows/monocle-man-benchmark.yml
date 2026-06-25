@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - preview-monocle-man-netlify
+      - chatgpt-slice-001-evidence-hardening
     paths:
       - "monocle-man-site/**"
       - ".github/workflows/monocle-man-benchmark.yml"
@@ -35,7 +36,7 @@ jobs:
           cache-dependency-path: monocle-man-site/package-lock.json
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
@@ -52,10 +53,17 @@ jobs:
           set +e
           npm run test:benchmark
           TEST_STATUS=$?
-          set -e
+          mkdir -p benchmark-evidence/source
+          cp dist/index.html benchmark-evidence/source/index.html
+          mv index.html index.source.html
           PLAYWRIGHT_EXIT_CODE=$TEST_STATUS node scripts/collect-evidence.mjs
+          COLLECT_STATUS=$?
+          mv index.source.html index.html
+          set -e
           cat benchmark-evidence/verdict.json
-          exit $TEST_STATUS
+          if [ "$TEST_STATUS" -ne 0 ] || [ "$COLLECT_STATUS" -ne 0 ]; then
+            exit 1
+          fi
 
       - name: Upload benchmark evidence
         if: always()
@@ -64,4 +72,4 @@ jobs:
           name: monocle-man-benchmark-evidence
           path: monocle-man-site/benchmark-evidence
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 30
