@@ -1,13 +1,20 @@
 {
   "name": "monocle-man-site",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "Slice 001 benchmark fixture for ChatGPT-Lab.",
+  "description": "React benchmark fixture for the ChatGPT-Lab Monocle Man experiment.",
   "scripts": {
-    "build": "node scripts/build-site.mjs",
+    "build": "vite build",
     "serve": "http-server ./dist -p 4173 -c-1 --silent",
     "test:benchmark": "playwright test --config=playwright.config.ts"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "latest",
+    "vite": "latest",
+    "typescript": "latest",
+    "react": "latest",
+    "react-dom": "latest"
   },
   "devDependencies": {
     "@playwright/test": "^1.49.1",
