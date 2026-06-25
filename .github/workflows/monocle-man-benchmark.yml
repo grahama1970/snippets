@@ -5,6 +5,7 @@ on:
     branches:
       - preview-monocle-man-netlify
       - chatgpt-slice-001-evidence-hardening
+      - chatgpt-monocle-react-contract-20260625
     paths:
       - "monocle-man-site/**"
       - ".github/workflows/monocle-man-benchmark.yml"
@@ -36,12 +37,12 @@ jobs:
           cache-dependency-path: monocle-man-site/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 
-      - name: Static build preflight
+      - name: React production build
         run: npm run build
 
       - name: Run benchmark and collect evidence
