@@ -5,7 +5,7 @@
 **Overall readiness:** `NOT_READY`  
 **Benchmark:** Monocle Man SPA
 
-The control plane is now versioned and readable by ChatGPT through GitHub. The full self-improvement loop is not yet closed because deterministic benchmark CI and a verified live deployment are not established.
+The control plane is versioned, readable by ChatGPT through GitHub, and validated by GitHub Actions. The full self-improvement loop is not yet closed because deterministic benchmark CI and a verified live deployment are not established.
 
 ## Readiness
 
@@ -13,6 +13,7 @@ The control plane is now versioned and readable by ChatGPT through GitHub. The f
 |---|---|---|
 | Persistent ChatGPT Project | `READY` | Project `ChatGPT-Lab` was created by the user and this conversation was moved into it. |
 | Versioned control-plane source | `READY_WITH_WORKAROUND` | `grahama1970/snippets@chatgpt-lab:chatgpt-lab/` |
+| Control-plane validation CI | `READY` | Draft PR #1, workflow run `28175960187`, commit `b84ef4316632a2bb8f8fd8273cd6c36064a005f4`; downloaded artifact reported `PASS` with no errors. |
 | Dedicated `grahama1970/chatgpt-lab` repository | `BLOCKED` | The connected GitHub tool does not expose repository creation. |
 | GitHub source read/write | `READY` | File, branch, PR, review, and CI-read operations are available. |
 | Skill discovery | `READY` | Generated registry in `grahama1970/agent-skills` is accessible. |
@@ -30,6 +31,7 @@ The control plane is now versioned and readable by ChatGPT through GitHub. The f
 ## Current source locations
 
 - Control plane: `grahama1970/snippets`, branch `chatgpt-lab`, path `chatgpt-lab/`
+- Control-plane review: `https://github.com/grahama1970/snippets/pull/1`
 - Skills: `grahama1970/agent-skills`, branch `main`
 - Website: `grahama1970/snippets`, branch `preview-monocle-man-netlify`, path `monocle-man-site/`
 - Netlify: `https://monocle-man-review.netlify.app`
