@@ -1,0 +1,92 @@
+{
+  "schema": "chatgpt_lab.source_manifest.v1",
+  "project": "ChatGPT-Lab",
+  "updated_on": "2026-06-25",
+  "control_plane": {
+    "repository": "grahama1970/snippets",
+    "ref": "chatgpt-lab",
+    "root": "chatgpt-lab/",
+    "status": "ACTIVE_BRANCH_WORKAROUND",
+    "desired_repository": "grahama1970/chatgpt-lab"
+  },
+  "sources": [
+    {
+      "id": "agent-skills-registry",
+      "kind": "github",
+      "repository": "grahama1970/agent-skills",
+      "ref": "main",
+      "paths": [
+        "SOURCES.md",
+        "sources/agent-skills-registry.json"
+      ],
+      "registry_blob_sha": "ea7d8a5e9f8c757069dd3feafff57e740d3c044b",
+      "registry_content_hash": "1fffd4a70db90f53a3e546c9c3a54e18188dc732c69d47d5fdb35c1fc41e367e",
+      "purpose": "Discover skills and agents before loading individual SKILL.md files.",
+      "refresh": "before each new task family and whenever the registry hash changes"
+    },
+    {
+      "id": "monocle-man-source",
+      "kind": "github",
+      "repository": "grahama1970/snippets",
+      "ref": "preview-monocle-man-netlify",
+      "root": "monocle-man-site/",
+      "last_known_commit": "e0416085ee468c516597734e5f795e84144dfdd0",
+      "purpose": "Benchmark SPA source code.",
+      "refresh": "before every implementation round"
+    },
+    {
+      "id": "monocle-man-ci",
+      "kind": "github-actions",
+      "repository": "grahama1970/snippets",
+      "ref": "preview-monocle-man-netlify",
+      "status": "NOT_ESTABLISHED",
+      "required_artifacts": [
+        "test-results.json",
+        "console-errors.json",
+        "accessibility.json",
+        "screenshots/desktop.png",
+        "screenshots/mobile.png",
+        "verdict.json"
+      ],
+      "purpose": "Deterministic execution and rendered evidence."
+    },
+    {
+      "id": "monocle-man-netlify",
+      "kind": "netlify",
+      "site_id": "df347395-47e5-4ed6-a1c7-57360a5735de",
+      "project_name": "monocle-man-review",
+      "primary_url": "https://monocle-man-review.netlify.app",
+      "status": "PROJECT_CREATED_DEPLOYMENT_UNVERIFIED",
+      "purpose": "Rendered source of truth for live review."
+    },
+    {
+      "id": "monocle-man-film",
+      "kind": "web",
+      "url": "https://youtu.be/NBxByrz5BRE",
+      "purpose": "Original media and dialogue context."
+    }
+  ],
+  "source_precedence": [
+    "github-source-at-recorded-commit",
+    "github-actions-output-for-that-commit",
+    "netlify-deployment-metadata-and-render",
+    "fresh-screenshots-and-interaction-results",
+    "selected-skill-guidance",
+    "project-decision-ledger",
+    "conversation-memory"
+  ],
+  "capabilities": {
+    "github_read": true,
+    "github_file_write": true,
+    "github_branch_write": true,
+    "github_pull_requests": true,
+    "github_actions_read": true,
+    "github_actions_rerun": true,
+    "github_repository_creation": false,
+    "netlify_project_read": true,
+    "netlify_project_create": true,
+    "netlify_direct_file_upload_from_chat_runtime": false,
+    "chatgpt_project_source_write": false,
+    "local_browser_render_and_screenshot": true
+  }
+}
