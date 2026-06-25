@@ -53,8 +53,12 @@ jobs:
           set +e
           npm run test:benchmark
           TEST_STATUS=$?
+          mkdir -p benchmark-evidence/source
+          cp dist/index.html benchmark-evidence/source/index.html
+          mv index.html index.source.html
           PLAYWRIGHT_EXIT_CODE=$TEST_STATUS node scripts/collect-evidence.mjs
           COLLECT_STATUS=$?
+          mv index.source.html index.html
           set -e
           cat benchmark-evidence/verdict.json
           if [ "$TEST_STATUS" -ne 0 ] || [ "$COLLECT_STATUS" -ne 0 ]; then
