@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://grahama1970.github.io/chatgpt-lab/schemas/iteration.schema.json",
+  "title": "ChatGPT-Lab Iteration Record",
+  "type": "object",
+  "required": [
+    "schema",
+    "iteration_id",
+    "started_at",
+    "control_plane",
+    "skills",
+    "candidate",
+    "evidence",
+    "reviews",
+    "verdict"
+  ],
+  "properties": {
+    "schema": {"const": "chatgpt_lab.iteration.v1"},
+    "iteration_id": {"type": "string", "minLength": 1},
+    "started_at": {"type": "string", "minLength": 1},
+    "completed_at": {"type": ["string", "null"]},
+    "control_plane": {
+      "type": "object",
+      "required": ["repository", "ref"],
+      "properties": {
+        "repository": {"type": "string"},
+        "ref": {"type": "string"}
+      }
+    },
+    "skills": {
+      "type": "object",
+      "required": ["registry_repository", "registry_ref", "selected"],
+      "properties": {
+        "registry_repository": {"type": "string"},
+        "registry_ref": {"type": "string"},
+        "registry_hash": {"type": ["string", "null"]},
+        "selected": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "required": ["repository", "branch", "commit"],
+      "properties": {
+        "repository": {"type": "string"},
+        "branch": {"type": "string"},
+        "commit": {"type": "string"}
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "required": ["ci", "deployment", "screenshots", "interactions"],
+      "properties": {
+        "ci": {"type": ["object", "null"]},
+        "deployment": {"type": ["object", "null"]},
+        "screenshots": {"type": "array"},
+        "interactions": {"type": ["object", "null"]}
+      }
+    },
+    "reviews": {
+      "type": "object",
+      "required": ["code", "design"],
+      "properties": {
+        "code": {"type": ["object", "null"]},
+        "design": {"type": ["object", "null"]}
+      }
+    },
+    "changes": {"type": "array"},
+    "verdict": {
+      "enum": ["PASS", "NEEDS_CHANGES", "BLOCKED", "INSUFFICIENT_EVIDENCE"]
+    },
+    "stop_reason": {"type": ["string", "null"]}
+  },
+  "additionalProperties": false
+}
