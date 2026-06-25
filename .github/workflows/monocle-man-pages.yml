@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -57,7 +57,7 @@ jobs:
           path: monocle-man-site/dist
 
   deploy:
-    name: Deploy to GitHub Pages
+    name: Deploy and prove GitHub Pages
     needs: build
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
@@ -68,3 +68,168 @@ jobs:
       - name: Deploy Pages artifact
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Check out delivery branch
+        uses: actions/checkout@v4
+        with:
+          ref: preview-monocle-man-netlify
+
+      - name: Set up Node for live proof
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: monocle-man-site/package-lock.json
+
+      - name: Install proof dependencies
+        working-directory: monocle-man-site
+        run: npm install
+
+      - name: Install Playwright browser
+        working-directory: monocle-man-site
+        run: npx playwright install --with-deps chromium
+
+      - name: Capture live Pages proof
+        working-directory: monocle-man-site
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+          DEPLOY_COMMIT: ${{ github.sha }}
+          DEPLOY_BRANCH: ${{ github.ref_name }}
+          DEPLOY_RUN_ID: ${{ github.run_id }}
+          DEPLOY_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          cat > live-pages-proof.mjs <<'NODE'
+          import fs from 'node:fs';
+          import path from 'node:path';
+          import { chromium } from 'playwright';
+
+          const pageUrl = process.env.PAGE_URL;
+          const outDir = path.resolve('../delivery-proof/monocle-man/latest');
+          const shotDir = path.join(outDir, 'screenshots');
+          fs.mkdirSync(shotDir, { recursive: true });
+
+          if (!pageUrl) {
+            throw new Error('Missing PAGE_URL from deploy-pages output');
+          }
+
+          const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+          let lastStatus = null;
+          for (let i = 0; i < 36; i += 1) {
+            try {
+              const response = await fetch(pageUrl, { cache: 'no-store' });
+              lastStatus = response.status;
+              if (response.ok) break;
+            } catch (error) {
+              lastStatus = error.message;
+            }
+            await sleep(5000);
+          }
+
+          const browser = await chromium.launch();
+          const consoleErrors = [];
+          const networkErrors = [];
+          const attach = (page, viewport) => {
+            page.on('console', message => {
+              if (message.type() === 'error') {
+                consoleErrors.push({ viewport, type: message.type(), text: message.text(), location: message.location() });
+              }
+            });
+            page.on('pageerror', error => {
+              consoleErrors.push({ viewport, type: 'pageerror', text: error.message });
+            });
+            page.on('requestfailed', request => {
+              networkErrors.push({
+                viewport,
+                url: request.url(),
+                method: request.method(),
+                resourceType: request.resourceType(),
+                failureText: request.failure()?.errorText || null
+              });
+            });
+          };
+
+          const desktop = await browser.newPage({ viewport: { width: 1440, height: 1100 } });
+          attach(desktop, 'desktop');
+          await desktop.goto(pageUrl, { waitUntil: 'networkidle', timeout: 90000 });
+          await desktop.screenshot({ path: path.join(shotDir, 'live-desktop-full.png'), fullPage: true });
+          const desktopHeading = await desktop.locator('[data-qid="monocle:hero:heading"]').innerText({ timeout: 10000 });
+          const animation = await desktop.evaluate(() => {
+            const play = document.querySelector('.round-play');
+            if (!play) return null;
+            const style = getComputedStyle(play, '::before');
+            return {
+              motionPreference: matchMedia('(prefers-reduced-motion: no-preference)').matches,
+              animationName: style.animationName,
+              animationDuration: style.animationDuration,
+              animationIterationCount: style.animationIterationCount
+            };
+          });
+          await desktop.locator('[data-qid="monocle:hero:watch-film"]').click({ timeout: 10000 });
+          await desktop.locator('[data-qid="monocle:modal:video"]').waitFor({ state: 'visible', timeout: 10000 });
+          await desktop.screenshot({ path: path.join(shotDir, 'live-desktop-modal.png'), fullPage: true });
+          await desktop.keyboard.press('Escape');
+
+          const mobile = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true });
+          attach(mobile, 'mobile');
+          await mobile.goto(pageUrl, { waitUntil: 'networkidle', timeout: 90000 });
+          await mobile.screenshot({ path: path.join(shotDir, 'live-mobile.png'), fullPage: true });
+          await mobile.locator('[data-qid="monocle:nav:menu-toggle"]').click({ timeout: 10000 });
+          await mobile.screenshot({ path: path.join(shotDir, 'live-mobile-menu.png'), fullPage: true });
+
+          await browser.close();
+
+          const proof = {
+            schema: 'chatgpt_lab.github_pages_live_proof.v1',
+            status: 'PASS',
+            page_url: pageUrl,
+            branch: process.env.DEPLOY_BRANCH,
+            commit: process.env.DEPLOY_COMMIT,
+            run_id: process.env.DEPLOY_RUN_ID,
+            run_attempt: process.env.DEPLOY_ATTEMPT,
+            checked_at: new Date().toISOString(),
+            http_status_before_browser: lastStatus,
+            assertions: {
+              hero_heading_contains_monocle_man: /Monocle Man/i.test(desktopHeading),
+              normal_motion_animation_name: animation?.animationName || null,
+              normal_motion_animation_duration: animation?.animationDuration || null,
+              normal_motion_animation_iteration_count: animation?.animationIterationCount || null
+            },
+            screenshots: {
+              desktop_full: 'screenshots/live-desktop-full.png',
+              desktop_modal: 'screenshots/live-desktop-modal.png',
+              mobile: 'screenshots/live-mobile.png',
+              mobile_menu: 'screenshots/live-mobile-menu.png'
+            },
+            console_errors: consoleErrors,
+            network_errors: networkErrors
+          };
+
+          if (!proof.assertions.hero_heading_contains_monocle_man) {
+            proof.status = 'FAIL';
+          }
+          if (proof.assertions.normal_motion_animation_name !== 'spin') {
+            proof.status = 'FAIL';
+          }
+
+          fs.writeFileSync(path.join(outDir, 'deployment-proof.json'), `${JSON.stringify(proof, null, 2)}\n`);
+          if (proof.status !== 'PASS') {
+            throw new Error(`Live Pages proof failed: ${JSON.stringify(proof.assertions)}`);
+          }
+          NODE
+          node live-pages-proof.mjs
+
+      - name: Upload live Pages proof artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: monocle-man-live-pages-proof
+          path: delivery-proof/monocle-man/latest
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Commit live Pages proof
+        run: |
+          git config user.name "ChatGPT-Lab"
+          git config user.email "chatgpt-lab@users.noreply.github.com"
+          git add delivery-proof/monocle-man/latest
+          git commit -m "Record Monocle Man GitHub Pages live proof" || exit 0
+          git push
