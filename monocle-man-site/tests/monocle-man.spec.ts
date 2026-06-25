@@ -11,6 +11,7 @@ const evidenceDir = process.env.BENCHMARK_EVIDENCE_DIR || "benchmark-evidence";
 const screenshotsDir = path.join(evidenceDir, "screenshots");
 
 type ViewportName = "desktop" | "mobile";
+type Verdict = "PASS" | "FAIL";
 
 type NetworkEntry = {
   viewport: ViewportName;
@@ -28,6 +29,35 @@ type ConsoleEntry = {
   location: unknown;
 };
 
+type InteractionEntry = {
+  viewport: ViewportName;
+  id: string;
+  action: string;
+  expected: unknown;
+  actual: unknown;
+  verdict: Verdict;
+  screenshot?: string;
+  caveat?: string;
+};
+
+type ImageStatusEntry = {
+  viewport: ViewportName;
+  id: string;
+  alt: string;
+  src: string;
+  currentSrc: string;
+  complete: boolean;
+  naturalWidth: number;
+  naturalHeight: number;
+  visible: boolean;
+  missingFallback: boolean;
+  verdict: Verdict;
+};
+
+function writeJson(relativePath: string, value: unknown) {
+  fs.writeFileSync(path.join(evidenceDir, relativePath), `${JSON.stringify(value, null, 2)}\n`);
+}
+
 function isExpectedStaticServeConsoleMiss(entry: ConsoleEntry) {
   const location = entry.location as { url?: string } | null;
   return entry.type === "error"
@@ -36,7 +66,13 @@ function isExpectedStaticServeConsoleMiss(entry: ConsoleEntry) {
     && location.url.includes("/.netlify/images?");
 }
 
-async function installEvidenceListeners(page: Page, viewport: ViewportName, baseURL: string | undefined, consoleErrors: ConsoleEntry[], networkErrors: NetworkEntry[]) {
+async function installEvidenceListeners(
+  page: Page,
+  viewport: ViewportName,
+  baseURL: string | undefined,
+  consoleErrors: ConsoleEntry[],
+  networkErrors: NetworkEntry[]
+) {
   const baseUrl = new URL(baseURL || "http://127.0.0.1:4173");
 
   page.on("console", message => {
@@ -73,12 +109,64 @@ async function installEvidenceListeners(page: Page, viewport: ViewportName, base
   });
 }
 
-test("Monocle Man renders, interacts, and emits Slice 001 evidence", async ({ browser, baseURL }) => {
+async function waitForMediaImages(page: Page) {
+  await page.evaluate(async () => {
+    const images = Array.from(document.querySelectorAll<HTMLImageElement>(".media img"));
+    await Promise.all(images.map(image => {
+      if (image.complete) return Promise.resolve();
+      return new Promise<void>(resolve => {
+        const done = () => resolve();
+        image.addEventListener("load", done, { once: true });
+        image.addEventListener("error", done, { once: true });
+        setTimeout(done, 5_000);
+      });
+    }));
+  });
+  await page.waitForTimeout(250);
+}
+
+async function collectImageStatus(page: Page, viewport: ViewportName): Promise<ImageStatusEntry[]> {
+  return await page.locator(".media img").evaluateAll((images, viewportName) => {
+    return images.map((node, index) => {
+      const image = node as HTMLImageElement;
+      const rect = image.getBoundingClientRect();
+      const container = image.closest(".media");
+      const loaded = image.complete && image.naturalWidth >= 100 && image.naturalHeight >= 75;
+      const visible = rect.width > 0 && rect.height > 0;
+      const missingFallback = Boolean(container?.classList.contains("missing"));
+      return {
+        viewport: viewportName as ViewportName,
+        id: image.dataset.benchmarkImage || `media-image-${index + 1}`,
+        alt: image.alt,
+        src: image.getAttribute("src") || "",
+        currentSrc: image.currentSrc,
+        complete: image.complete,
+        naturalWidth: image.naturalWidth,
+        naturalHeight: image.naturalHeight,
+        visible,
+        missingFallback,
+        verdict: loaded && visible && !missingFallback ? "PASS" : "FAIL"
+      };
+    });
+  }, viewport);
+}
+
+async function focusByKeyboard(page: Page, selector: string, maxTabs = 12) {
+  for (let index = 0; index < maxTabs; index += 1) {
+    await page.keyboard.press("Tab");
+    const matched = await page.evaluate(target => document.activeElement?.matches(target) || false, selector);
+    if (matched) return true;
+  }
+  return false;
+}
+
+test("Monocle Man renders, interacts, and emits hardened Slice 001 evidence", async ({ browser, baseURL }) => {
   fs.mkdirSync(screenshotsDir, { recursive: true });
 
   const consoleErrors: ConsoleEntry[] = [];
   const networkErrors: NetworkEntry[] = [];
-  const interactions: unknown[] = [];
+  const interactions: InteractionEntry[] = [];
+  const imageStatus: ImageStatusEntry[] = [];
   const accessibility: Record<string, unknown> = {
     schema: "chatgpt_lab.accessibility_report.v1",
     generated_at: new Date().toISOString(),
@@ -102,101 +190,207 @@ test("Monocle Man renders, interacts, and emits Slice 001 evidence", async ({ br
     await installEvidenceListeners(page, viewport.name, baseURL, consoleErrors, networkErrors);
 
     await page.goto("/", { waitUntil: "domcontentloaded" });
-    await expect(page.locator("main h1")).toContainText("Monocle");
-    await expect(page.locator("[data-slice-note]")).toContainText("Slice 001 evidence build");
+    await waitForMediaImages(page);
 
     const title = await page.title();
     const heroText = await page.locator(".hero-quote").innerText();
+    const initialOk = title.includes("The Monocle Man")
+      && heroText.toLowerCase().includes("monocle")
+      && await page.locator("main h1").isVisible()
+      && await page.locator("[data-slice-note]").isVisible();
     interactions.push({
       viewport: viewport.name,
-      action: "initial_render",
-      ok: title.includes("The Monocle Man") && heroText.includes("monocle"),
-      title,
-      heroText
+      id: `${viewport.name}:initial-render`,
+      action: "render",
+      expected: "visible title, hero, and Slice 001 marker",
+      actual: { title, heroText, initialOk },
+      verdict: initialOk ? "PASS" : "FAIL",
+      screenshot: `screenshots/${viewport.name}.png`
+    });
+
+    await page.screenshot({
+      path: path.join(screenshotsDir, `${viewport.name}.png`),
+      fullPage: false
+    });
+    await page.locator(".hero").screenshot({
+      path: path.join(screenshotsDir, `${viewport.name}-hero.png`)
+    });
+
+    const viewportImages = await collectImageStatus(page, viewport.name);
+    imageStatus.push(...viewportImages);
+
+    const layout = await page.evaluate(() => ({
+      scrollWidth: document.documentElement.scrollWidth,
+      clientWidth: document.documentElement.clientWidth
+    }));
+    const noOverflow = layout.scrollWidth <= layout.clientWidth + 1;
+    interactions.push({
+      viewport: viewport.name,
+      id: `${viewport.name}:horizontal-overflow`,
+      action: "measure-layout",
+      expected: "scrollWidth <= clientWidth + 1",
+      actual: layout,
+      verdict: noOverflow ? "PASS" : "FAIL"
+    });
+
+    const reducedMotion = await page.evaluate(() => {
+      const play = document.querySelector(".round-play");
+      const orbit = document.querySelector(".orbit");
+      return {
+        mediaMatches: matchMedia("(prefers-reduced-motion: reduce)").matches,
+        playAnimation: play ? getComputedStyle(play, "::before").animationName : null,
+        orbitAnimation: orbit ? getComputedStyle(orbit, "::before").animationName : null
+      };
+    });
+    const reducedMotionOk = reducedMotion.mediaMatches
+      && reducedMotion.playAnimation === "none"
+      && reducedMotion.orbitAnimation === "none";
+    interactions.push({
+      viewport: viewport.name,
+      id: `${viewport.name}:reduced-motion`,
+      action: "inspect-computed-style",
+      expected: { mediaMatches: true, playAnimation: "none", orbitAnimation: "none" },
+      actual: reducedMotion,
+      verdict: reducedMotionOk ? "PASS" : "FAIL"
+    });
+
+    const externalLink = page.locator("a[href*='youtube.com/watch']");
+    const externalLinkState = {
+      href: await externalLink.getAttribute("href"),
+      target: await externalLink.getAttribute("target"),
+      rel: await externalLink.getAttribute("rel")
+    };
+    const externalLinkOk = externalLinkState.href?.includes("NBxByrz5BRE") === true
+      && externalLinkState.target === "_blank"
+      && externalLinkState.rel?.includes("noopener") === true;
+    interactions.push({
+      viewport: viewport.name,
+      id: `${viewport.name}:external-film-link`,
+      action: "inspect-link",
+      expected: "correct film URL with target=_blank and noopener",
+      actual: externalLinkState,
+      verdict: externalLinkOk ? "PASS" : "FAIL"
     });
 
     if (viewport.name === "desktop") {
-      await page.locator("button[data-open-video]").first().click();
-      const dialog = page.locator("dialog[data-modal]");
-      await expect(dialog).toHaveJSProperty("open", true);
-      await expect(page.locator("[data-modal-frame]")).toHaveAttribute("src", /youtube-nocookie/);
+      const focused = await focusByKeyboard(page, "button[data-open-video]");
+      const focusVisible = focused && await page.evaluate(() => document.activeElement?.matches(":focus-visible") || false);
       interactions.push({
         viewport: viewport.name,
-        action: "open_video_modal",
-        ok: true
+        id: "desktop:watch-film-keyboard-focus",
+        action: "tab-to-control",
+        expected: "watch-film button receives visible keyboard focus",
+        actual: { focused, focusVisible },
+        verdict: focused && focusVisible ? "PASS" : "FAIL"
       });
 
-      await page.locator("[data-close]").click();
-      await expect(dialog).toHaveJSProperty("open", false);
+      await page.keyboard.press("Enter");
+      const dialog = page.locator("dialog[data-modal]");
+      const dialogOpened = await dialog.evaluate(element => (element as HTMLDialogElement).open);
+      const modalSrc = await page.locator("[data-modal-frame]").getAttribute("src");
+      await page.screenshot({
+        path: path.join(screenshotsDir, "desktop-modal.png"),
+        fullPage: false
+      });
       interactions.push({
         viewport: viewport.name,
-        action: "close_video_modal",
-        ok: true
+        id: "desktop:open-video-modal",
+        action: "keyboard-enter",
+        expected: "dialog open with privacy-enhanced YouTube source",
+        actual: { dialogOpened, modalSrc },
+        verdict: dialogOpened && modalSrc?.includes("youtube-nocookie") ? "PASS" : "FAIL",
+        screenshot: "screenshots/desktop-modal.png"
+      });
+
+      await page.keyboard.press("Escape");
+      const dialogClosed = !(await dialog.evaluate(element => (element as HTMLDialogElement).open));
+      interactions.push({
+        viewport: viewport.name,
+        id: "desktop:close-video-modal",
+        action: "keyboard-escape",
+        expected: "dialog closed",
+        actual: { dialogClosed },
+        verdict: dialogClosed ? "PASS" : "FAIL"
       });
     }
 
     if (viewport.name === "mobile") {
       const menu = page.locator("[data-menu]");
       await menu.click();
-      await expect(menu).toHaveAttribute("aria-expanded", "true");
+      const expanded = await menu.getAttribute("aria-expanded");
+      await page.screenshot({
+        path: path.join(screenshotsDir, "mobile-menu.png"),
+        fullPage: false
+      });
       await page.locator("[data-links] a[href='#film']").click();
-      await expect(menu).toHaveAttribute("aria-expanded", "false");
+      const collapsed = await menu.getAttribute("aria-expanded");
       interactions.push({
         viewport: viewport.name,
-        action: "mobile_menu_open_and_close",
-        ok: true
+        id: "mobile:menu-open-navigate-close",
+        action: "click-menu-and-film-link",
+        expected: { expanded: "true", collapsed: "false" },
+        actual: { expanded, collapsed },
+        verdict: expanded === "true" && collapsed === "false" ? "PASS" : "FAIL",
+        screenshot: "screenshots/mobile-menu.png"
       });
     }
 
     await page.addScriptTag({ content: axeSource });
     const axeResults = await page.evaluate(async () => {
       return await (window as unknown as { axe: { run: (context?: unknown, options?: unknown) => Promise<unknown> } }).axe.run(document, {
-        resultTypes: ["violations"],
-        rules: {
-          "color-contrast": { enabled: false }
-        }
+        resultTypes: ["violations", "incomplete"]
       });
     });
-
     (accessibility.scans as unknown[]).push({
       viewport: viewport.name,
       result: axeResults
     });
 
+    await page.locator("#lines").scrollIntoViewIfNeeded();
+    await page.locator("#lines").screenshot({
+      path: path.join(screenshotsDir, `${viewport.name}-lines.png`)
+    });
     await page.screenshot({
-      path: path.join(screenshotsDir, `${viewport.name}.png`),
+      path: path.join(screenshotsDir, `${viewport.name}-full.png`),
       fullPage: true
     });
 
     await context.close();
   }
 
-  fs.writeFileSync(path.join(evidenceDir, "console-errors.json"), JSON.stringify({
+  writeJson("console-errors.json", {
     schema: "chatgpt_lab.console_errors.v1",
     generated_at: new Date().toISOString(),
     errors: consoleErrors
-  }, null, 2));
-
-  fs.writeFileSync(path.join(evidenceDir, "network-errors.json"), JSON.stringify({
+  });
+  writeJson("network-errors.json", {
     schema: "chatgpt_lab.network_errors.v1",
     generated_at: new Date().toISOString(),
     errors: networkErrors
-  }, null, 2));
-
-  fs.writeFileSync(path.join(evidenceDir, "accessibility.json"), JSON.stringify(accessibility, null, 2));
-
-  fs.writeFileSync(path.join(evidenceDir, "interactions.json"), JSON.stringify({
+  });
+  writeJson("accessibility.json", accessibility);
+  writeJson("interactions.json", {
     schema: "chatgpt_lab.interactions.v1",
     generated_at: new Date().toISOString(),
     interactions
-  }, null, 2));
+  });
+  writeJson("image-status.json", {
+    schema: "chatgpt_lab.image_status.v1",
+    generated_at: new Date().toISOString(),
+    images: imageStatus
+  });
 
+  const unexpectedConsoleErrors = consoleErrors.filter(entry => !isExpectedStaticServeConsoleMiss(entry));
   const blockingNetworkErrors = networkErrors.filter(entry => entry.severity === "error");
-  const criticalA11yViolations = (accessibility.scans as any[])
+  const failedInteractions = interactions.filter(entry => entry.verdict === "FAIL");
+  const failedImages = imageStatus.filter(entry => entry.verdict === "FAIL");
+  const blockingA11yViolations = (accessibility.scans as any[])
     .flatMap(scan => scan.result?.violations || [])
-    .filter(violation => violation.impact === "critical");
+    .filter(violation => violation.impact === "critical" || violation.impact === "serious");
 
-  expect(consoleErrors.filter(entry => !isExpectedStaticServeConsoleMiss(entry))).toEqual([]);
-  expect(blockingNetworkErrors).toEqual([]);
-  expect(criticalA11yViolations).toEqual([]);
+  expect.soft(unexpectedConsoleErrors, "unexpected console errors").toEqual([]);
+  expect.soft(blockingNetworkErrors, "same-origin network failures").toEqual([]);
+  expect.soft(failedInteractions, "deterministic interaction failures").toEqual([]);
+  expect.soft(failedImages, "required media images must load and remain visible").toEqual([]);
+  expect.soft(blockingA11yViolations, "critical or serious accessibility violations").toEqual([]);
 });
