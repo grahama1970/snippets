@@ -1,0 +1,67 @@
+name: Monocle Man Benchmark
+
+on:
+  push:
+    branches:
+      - preview-monocle-man-netlify
+    paths:
+      - "monocle-man-site/**"
+      - ".github/workflows/monocle-man-benchmark.yml"
+  pull_request:
+    paths:
+      - "monocle-man-site/**"
+      - ".github/workflows/monocle-man-benchmark.yml"
+  workflow_dispatch:
+
+jobs:
+  benchmark:
+    name: Benchmark evidence
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: monocle-man-site
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: monocle-man-site/package-lock.json
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Static build preflight
+        run: npm run build
+
+      - name: Run benchmark and collect evidence
+        shell: bash
+        env:
+          BENCHMARK_EVIDENCE_DIR: benchmark-evidence
+          BENCHMARK_ARTIFACT_NAME: monocle-man-benchmark-evidence
+        run: |
+          set +e
+          npm run test:benchmark
+          TEST_STATUS=$?
+          set -e
+          PLAYWRIGHT_EXIT_CODE=$TEST_STATUS node scripts/collect-evidence.mjs
+          cat benchmark-evidence/verdict.json
+          exit $TEST_STATUS
+
+      - name: Upload benchmark evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: monocle-man-benchmark-evidence
+          path: monocle-man-site/benchmark-evidence
+          if-no-files-found: error
+          retention-days: 14

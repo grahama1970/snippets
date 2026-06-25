@@ -1,0 +1,17 @@
+{
+  "name": "monocle-man-site",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Slice 001 benchmark fixture for ChatGPT-Lab.",
+  "scripts": {
+    "build": "node -e \"const fs=require('fs'); if(!fs.existsSync('index.html')){console.error('missing index.html'); process.exit(1)} fs.mkdirSync('benchmark-evidence/screenshots',{recursive:true})\"",
+    "serve": "http-server . -p 4173 -c-1 --silent",
+    "test:benchmark": "playwright test --config=playwright.config.ts"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.1",
+    "axe-core": "^4.10.2",
+    "http-server": "^14.1.1"
+  }
+}
